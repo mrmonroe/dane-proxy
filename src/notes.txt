@@ -1,0 +1,52 @@
+/*
+// parse "80" and "localhost:80" or even "42mEANINg-life.com:80"
+var addrRegex = /^(([a-zA-Z\-\.0-9]+):)?(\d+)$/;
+const LOOPBACK = '127.0.0.1';
+const FROMPORT = 8080,
+  HTTPPORT = 8181,
+  SECUREPORT = 443;
+const FROMHOST = `${LOOPBACK}:${FROMPORT.toString()}`;
+const HTTPHOST = `${LOOPBACK}:${HTTPPORT.toString()}`;
+const SECUREHOST = `${LOOPBACK}:${SECUREPORT.toString()}`;
+
+const proxy = net
+  .createServer((from: any) => {
+    from.on('data', (req) => {
+      const data = req.toString('utf-8');
+      const isConnectMethod = data.toString('utf-8').indexOf('CONNECT') !== 1;
+      let serverPort: number = 80;
+      let serverAddress: string;
+
+      if (!isConnectMethod) {
+        const d = data.split('CONNECT ')[1].split(' ')[0].split(':');
+        serverAddress = d[0];
+        serverPort = parseInt(d[1]) || 443;
+      } else {
+        try {
+          serverAddress = data.toString('utf-8').toLowerCase().split('host: ')[1];
+
+          serverAddress = serverAddress.split('\r\n')[0];
+          const serverAddressSplit = serverAddress.split(':');
+          serverAddress = serverAddressSplit[0];
+          serverPort = parseInt(serverAddressSplit[1]);
+        } catch (e) {
+          logger.debug('address split', e);
+        }
+      }
+    });
+
+    const to = net.createConnection({
+      host: 'www.google.com',
+      port: 443,
+    });
+    from.pipe(to);
+    to.pipe(from);
+
+    from.on('lookup', (err, req) => {
+      console.log('addr', req.addr);
+      console.log('famil', req.family);
+      console.log('host', req.host);
+    });
+  })
+  .listen(FROMPORT);
+*/
