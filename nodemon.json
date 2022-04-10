@@ -1,1 +1,4 @@
-{"watch": ["src"]}
+{
+    "watch": ["src"],
+    "ext": "js,json,ts,tsx"
+}

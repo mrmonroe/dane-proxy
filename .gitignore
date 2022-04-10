@@ -1,3 +1,6 @@
+# Certs
+certs/
+.vscode/
 # Logs
 logs
 *.log
