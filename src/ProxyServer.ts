@@ -46,15 +46,19 @@ export default class ProxyServer {
     let toSock: any;
     try {
       const server = net.createServer((fromSock: any) => {
-        fromSock.on('data', (req) => {
-          toSock = this.handleFromSockData(req);
-
+        fromSock.on('data', (req: any) => {
+          const data = req.toString('utf-8');
+          toSock = this.handleFromSockData(data);
+          toSock.write('HTTP/1.1 200 Connection Established\r\n  \r\n');
+          //  Proxy-agent: Dane-Proxy\r\n
           fromSock.pipe(toSock);
           toSock.pipe(fromSock);
+          toSock.emit('end');
+          fromSock.emit('end');
+          toSock.end();
+          fromSock.end();
         });
       });
-      // piping here
-      //this.pipeSockets(fromSock, toSock);
 
       server.on('connect', () => {
         this.handleConnect();
@@ -70,10 +74,10 @@ export default class ProxyServer {
 
       if (options.port) {
         server.listen(options.port, () => {
-          console.log(`Dane-Proxy listening on: -->> Port:${options.port}`);
           if (this.serverListeningPromise) {
             return this.serverListeningPromise.resolve;
           }
+          return 1;
         });
       } else {
         logger.error('NO PORT');
@@ -92,7 +96,7 @@ export default class ProxyServer {
     console.log('handle Connection');
   };
 
-  handleError = (err): void => {
+  handleError = (err: any): void => {
     // throw new Error('Function not implemented.');
     console.log('handle Error', err);
   };
@@ -101,8 +105,7 @@ export default class ProxyServer {
     console.log('handle Close');
   };
 
-  handleFromSockData = (req: any) => {
-    const data = req.toString('utf-8');
+  handleFromSockData = (data: string) => {
     console.log(data);
     const parsedData = this.parseData(data);
     console.log(parsedData);
@@ -129,24 +132,22 @@ export default class ProxyServer {
     const isConnectMethod = data.indexOf('CONNECT') !== 1;
     let serverPort: number = 80;
     let serverAddress: string;
-
-    if (!isConnectMethod) {
-      const d = data.split('CONNECT ')[1].split(' ')[0].split(':');
-      serverAddress = d[0];
-      serverPort = parseInt(d[1]) || 443;
-    } else {
-      try {
+    try {
+      if (!isConnectMethod) {
+        const d = data.split('CONNECT ')[1].split(' ')[0].split(':');
+        serverAddress = d[0];
+        serverPort = parseInt(d[1], 10) || 443;
+      } else {
         serverAddress = data.toLowerCase().split('host: ')[1];
-
         serverAddress = serverAddress.split('\r\n')[0];
         const serverAddressSplit = serverAddress.split(':');
         serverAddress = serverAddressSplit[0];
-        serverPort = parseInt(serverAddressSplit[1]);
-        return { address: serverAddress, port: serverPort };
-      } catch (e) {
-        logger.debug('Data parsing error', e);
-        throw new Error(`Data parsing error: ${e}`);
+        serverPort = parseInt(serverAddressSplit[1], 10);
       }
+      return { address: serverAddress, port: serverPort };
+    } catch (e) {
+      logger.debug('Data parsing error', e);
+      throw new Error(`Data parsing error: ${e}`);
     }
   };
 }
